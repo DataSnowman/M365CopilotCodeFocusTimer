@@ -97,3 +97,14 @@ The app does not currently connect to a Microsoft 365 calendar. Because no upcom
 - SVG
 - Web Audio API
 - M365 Copilot Code
+
+## How to Open an index.html File from the M365 Copilot Canvas Terminal or a Local Terminal
+
+To launch your HTML file in your default web browser from your standard command terminal, use the appropriate command for your operating system:
+
+| Operating System | Command to Run |
+| :--- | :--- |
+| **Windows (PowerShell)** | `Start-Process .\index.html` _(or simply `start index.html`)_ |
+| **Windows (Command Prompt)** | `start index.html` |
+| **macOS (Terminal)** | `open index.html` |
+| **Linux (Terminal)** | `xdg-open index.html` |
