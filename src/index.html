@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Focus Timer</title>
+<style>
+  :root{
+    --bg:#0b1020;
+    --card:rgba(255,255,255,.06);
+    --stroke:rgba(255,255,255,.12);
+    --text:#eaf0ff;
+    --muted:#9aa7c7;
+    --accent:#6ee7f0;
+    --accent2:#a78bfa;
+    --ok:#4ade80;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(900px 600px at 15% 10%, #1d2a5e 0%, transparent 60%),
+      radial-gradient(800px 600px at 85% 85%, #3b1e63 0%, transparent 60%),
+      var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    padding:32px;
+  }
+  .card{
+    width:min(460px,100%);
+    background:var(--card);
+    border:1px solid var(--stroke);
+    border-radius:28px;
+    padding:34px 32px 28px;
+    backdrop-filter:blur(18px);
+    box-shadow:0 30px 80px rgba(0,0,0,.45);
+    text-align:center;
+  }
+  h1{margin:0 0 4px;font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .state{margin:0 0 20px;font-size:13px;color:var(--accent);letter-spacing:.08em;min-height:18px}
+  .ring{position:relative;width:260px;height:260px;margin:0 auto}
+  svg{transform:rotate(-90deg);width:100%;height:100%}
+  .track{fill:none;stroke:rgba(255,255,255,.08);stroke-width:14}
+  .bar{
+    fill:none;stroke:url(#grad);stroke-width:14;stroke-linecap:round;
+    transition:stroke-dashoffset .35s linear;
+    filter:drop-shadow(0 0 10px rgba(110,231,240,.45));
+  }
+  .ring.done .bar{filter:drop-shadow(0 0 14px rgba(74,222,128,.6))}
+  .inner{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;
+  }
+  .time{font-size:52px;font-weight:200;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+  .sub{font-size:12px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+  .pulse{animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+  .len{display:flex;align-items:center;justify-content:center;gap:10px;margin:26px 0 18px}
+  .len label{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  input[type=number]{
+    width:76px;padding:8px 10px;text-align:center;font-size:16px;
+    color:var(--text);background:rgba(255,255,255,.07);
+    border:1px solid var(--stroke);border-radius:12px;outline:none;
+    font-family:inherit;
+  }
+  input[type=number]:focus{border-color:var(--accent)}
+  input[type=number]:disabled{opacity:.45}
+  .presets{display:flex;gap:6px;justify-content:center;margin-bottom:22px;flex-wrap:wrap}
+  .presets button{
+    padding:5px 12px;font-size:12px;border-radius:999px;cursor:pointer;
+    background:transparent;border:1px solid var(--stroke);color:var(--muted);
+    transition:.2s;font-family:inherit;
+  }
+  .presets button:hover:not(:disabled){color:var(--text);border-color:var(--accent)}
+  .presets button:disabled{opacity:.35;cursor:not-allowed}
+  .controls{display:flex;gap:12px;justify-content:center}
+  .controls button{
+    flex:1;padding:13px 0;border-radius:16px;font-size:14px;font-weight:600;
+    letter-spacing:.06em;cursor:pointer;font-family:inherit;transition:.2s;
+    border:1px solid var(--stroke);background:rgba(255,255,255,.07);color:var(--text);
+  }
+  .controls button:hover:not(:disabled){background:rgba(255,255,255,.14);transform:translateY(-1px)}
+  .controls button:disabled{opacity:.35;cursor:not-allowed;transform:none}
+  .primary{
+    background:linear-gradient(135deg,var(--accent),var(--accent2))!important;
+    color:#0b1020!important;border-color:transparent!important;
+  }
+  .note{margin:20px 0 0;font-size:11px;color:var(--muted);opacity:.7;line-height:1.5}
+  .sound{
+    margin-top:16px;display:flex;align-items:center;justify-content:center;gap:7px;
+    font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;
+    background:none;border:none;cursor:pointer;font-family:inherit;
+    transition:.2s;width:100%;padding:4px;
+  }
+  .sound:hover{color:var(--text)}
+  .sound .dot{
+    width:7px;height:7px;border-radius:50%;background:var(--ok);
+    box-shadow:0 0 8px rgba(74,222,128,.7);transition:.2s;
+  }
+  .sound.off .dot{background:var(--muted);box-shadow:none}
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Focus Timer</h1>
+    <p class="state" id="state">Ready</p>
+
+    <div class="ring" id="ring">
+      <svg viewBox="0 0 120 120">
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6ee7f0"/>
+            <stop offset="100%" stop-color="#a78bfa"/>
+          </linearGradient>
+        </defs>
+        <circle class="track" cx="60" cy="60" r="52"/>
+        <circle class="bar" id="bar" cx="60" cy="60" r="52"/>
+      </svg>
+      <div class="inner">
+        <div class="time" id="time">25:00</div>
+        <div class="sub" id="pct">0% complete</div>
+      </div>
+    </div>
+
+    <div class="len">
+      <label for="len">Session</label>
+      <input id="len" type="number" min="1" max="180" step="1" value="25" />
+      <label>min</label>
+    </div>
+
+    <div class="presets" id="presets">
+      <button data-min="5">5</button>
+      <button data-min="15">15</button>
+      <button data-min="25">25</button>
+      <button data-min="45">45</button>
+      <button data-min="60">60</button>
+    </div>
+
+    <div class="controls">
+      <button id="start" class="primary">Start</button>
+      <button id="pause" disabled>Pause</button>
+      <button id="reset" disabled>Reset</button>
+    </div>
+
+    <button class="sound" id="sound" aria-pressed="true">
+      <span class="dot"></span><span id="soundLabel">Chime on</span>
+    </button>
+
+    <p class="note">No upcoming timed calendar event was accessible, so the meeting countdown is hidden.</p>
+  </main>
+
+<script>
+(function(){
+  const R = 52, CIRC = 2 * Math.PI * R;
+  const bar = document.getElementById('bar');
+  const ring = document.getElementById('ring');
+  const timeEl = document.getElementById('time');
+  const pctEl = document.getElementById('pct');
+  const stateEl = document.getElementById('state');
+  const lenEl = document.getElementById('len');
+  const startBtn = document.getElementById('start');
+  const pauseBtn = document.getElementById('pause');
+  const resetBtn = document.getElementById('reset');
+  const presetBtns = [...document.querySelectorAll('#presets button')];
+  const soundBtn = document.getElementById('sound');
+  const soundLabel = document.getElementById('soundLabel');
+
+  // --- subtle completion chime (Web Audio, no external assets) ---
+  let audioCtx = null;
+  let soundOn = true;
+
+  // Browsers block audio until a user gesture, so prime the context on Start.
+  function primeAudio(){
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }catch(e){ audioCtx = null; }
+  }
+
+  function tone(freq, startOffset, duration, peak){
+    const t0 = audioCtx.currentTime + startOffset;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    osc2.type = 'sine';
+    osc2.frequency.value = freq * 2;  // faint overtone for a bell-like body
+
+    // soft attack, long exponential decay -> gentle, non-jarring
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+
+    gain2.gain.setValueAtTime(0.0001, t0);
+    gain2.gain.exponentialRampToValueAtTime(peak * 0.18, t0 + 0.03);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, t0 + duration * 0.6);
+
+    osc.connect(gain).connect(audioCtx.destination);
+    osc2.connect(gain2).connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0 + duration + 0.05);
+    osc2.start(t0); osc2.stop(t0 + duration + 0.05);
+  }
+
+  function playChime(){
+    if (!soundOn) return;
+    primeAudio();
+    if (!audioCtx) return;
+    // rising three-note figure (A5, C#6, E6) at low volume
+    tone(880.00, 0.00, 1.5, 0.10);
+    tone(1108.73, 0.18, 1.5, 0.085);
+    tone(1318.51, 0.36, 2.2, 0.075);
+  }
+
+  function setSound(on){
+    soundOn = on;
+    soundBtn.classList.toggle('off', !on);
+    soundBtn.setAttribute('aria-pressed', String(on));
+    soundLabel.textContent = on ? 'Chime on' : 'Chime off';
+  }
+
+  soundBtn.addEventListener('click', () => {
+    setSound(!soundOn);
+    if (soundOn){ primeAudio(); playChime(); }  // preview when enabling
+  });
+
+  bar.style.strokeDasharray = CIRC;
+  bar.style.strokeDashoffset = CIRC;
+
+  let totalMs = 25 * 60000;
+  let remainingMs = totalMs;
+  let endAt = null;      // timestamp when running
+  let running = false;
+  let tickId = null;
+
+  const clampMin = v => Math.min(180, Math.max(1, Math.round(v || 0)));
+
+  function fmt(ms){
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(s / 60);
+    return String(m).padStart(2,'0') + ':' + String(s % 60).padStart(2,'0');
+  }
+
+  function render(){
+    const done = totalMs - remainingMs;
+    const frac = totalMs > 0 ? Math.min(1, Math.max(0, done / totalMs)) : 0;
+    bar.style.strokeDashoffset = CIRC * (1 - frac);
+    timeEl.textContent = fmt(remainingMs);
+    pctEl.textContent = Math.round(frac * 100) + '% complete';
+  }
+
+  function setState(text, pulsing){
+    stateEl.textContent = text;
+    stateEl.classList.toggle('pulse', !!pulsing);
+  }
+
+  function lockInputs(locked){
+    lenEl.disabled = locked;
+    presetBtns.forEach(b => b.disabled = locked);
+  }
+
+  function tick(){
+    remainingMs = endAt - Date.now();
+    if (remainingMs <= 0){
+      remainingMs = 0;
+      finish();
+    }
+    render();
+  }
+
+  function finish(){
+    clearInterval(tickId);
+    tickId = null;
+    running = false;
+    ring.classList.add('done');
+    bar.style.stroke = 'var(--ok)';
+    setState('Time\u2019s up \u2014 reset for your next interval', true);
+    playChime();
+    startBtn.disabled = true;
+    pauseBtn.disabled = true;
+    resetBtn.disabled = false;
+    lockInputs(false);
+    startBtn.classList.remove('primary');
+    resetBtn.classList.add('primary');  // point the user at the next action
+  }
+
+  function start(){
+    if (running || remainingMs <= 0) return;
+    primeAudio();
+    ring.classList.remove('done');
+    bar.style.stroke = '';
+    endAt = Date.now() + remainingMs;
+    running = true;
+    tickId = setInterval(tick, 200);
+    setState('Focusing', true);
+    startBtn.disabled = true;
+    pauseBtn.disabled = false;
+    resetBtn.disabled = false;
+    lockInputs(true);
+  }
+
+  function pause(){
+    if (!running) return;
+    clearInterval(tickId); tickId = null;
+    remainingMs = Math.max(0, endAt - Date.now());
+    running = false;
+    setState('Paused', false);
+    startBtn.disabled = false;
+    startBtn.textContent = 'Resume';
+    pauseBtn.disabled = true;
+    render();
+  }
+
+  function reset(){
+    clearInterval(tickId); tickId = null;
+    running = false;
+    ring.classList.remove('done');
+    bar.style.stroke = '';
+    totalMs = clampMin(parseInt(lenEl.value,10)) * 60000;
+    remainingMs = totalMs;
+    setState('Ready', false);
+    startBtn.disabled = false;
+    startBtn.textContent = 'Start';
+    pauseBtn.disabled = true;
+    resetBtn.disabled = true;
+    lockInputs(false);
+    resetBtn.classList.remove('primary');
+    startBtn.classList.add('primary');
+    render();
+  }
+
+  function applyLength(){
+    const m = clampMin(parseInt(lenEl.value,10));
+    lenEl.value = m;
+    if (running) return;
+    totalMs = m * 60000;
+    remainingMs = totalMs;
+    ring.classList.remove('done');
+    bar.style.stroke = '';
+    startBtn.disabled = false;
+    startBtn.textContent = 'Start';
+    resetBtn.disabled = true;
+    setState('Ready', false);
+    render();
+  }
+
+  startBtn.addEventListener('click', start);
+  pauseBtn.addEventListener('click', pause);
+  resetBtn.addEventListener('click', reset);
+  lenEl.addEventListener('input', applyLength);
+  lenEl.addEventListener('blur', applyLength);
+  presetBtns.forEach(b => b.addEventListener('click', () => {
+    lenEl.value = b.dataset.min;
+    applyLength();
+  }));
+
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space'){ e.preventDefault(); running ? pause() : start(); }
+    if (e.key.toLowerCase() === 'r'){ reset(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
