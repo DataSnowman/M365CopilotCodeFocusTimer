@@ -12,6 +12,18 @@ A lightweight, browser-based focus timer created with **M365 Copilot Code**. It 
 - Keyboard shortcuts for common timer actions
 - Responsive, glass-style interface that works on desktop and mobile browsers
 
+## Prompts used to build the Focus Timer
+
+```
+Read only my next upcoming timed calendar event within the next 24 hours, using its title and start time. Build a beautifully designed focus timer with an animated progress ring, editable session length, and start, pause, and reset controls. Show a separate countdown to that event. If no event is available, build it without the meeting countdown. Don't modify my calendar.
+```
+
+Add the Chime
+
+```
+Can we modify the code so it makes a noise (something subtle) to let the user no the time ended and you should reset for next focus interval
+```
+
 ## Getting Started
 
 No installation or build process is required.
